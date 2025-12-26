@@ -1,0 +1,619 @@
+openapi: 3.1.0
+info:
+  title: Tool Management API
+  description: |
+    API for managing tools through the web interface.
+    No authentication required (internal/development use).
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+paths:
+  /tools:
+    get:
+      operationId: listTools
+      summary: List tools with pagination and filtering
+      tags: [Tools]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ToolStatus'
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search in name and display_name
+      responses:
+        '200':
+          description: Paginated list of tools
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolListResponse'
+
+    post:
+      operationId: createTool
+      summary: Create a new tool
+      tags: [Tools]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ToolCreate'
+      responses:
+        '201':
+          description: Tool created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolResponse'
+        '400':
+          description: Validation error (duplicate name, invalid schema, syntax error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tools/{tool_id}:
+    get:
+      operationId: getTool
+      summary: Get tool by ID
+      tags: [Tools]
+      parameters:
+        - $ref: '#/components/parameters/ToolId'
+      responses:
+        '200':
+          description: Tool details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolResponse'
+        '404':
+          description: Tool not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      operationId: updateTool
+      summary: Update a tool (auto-increments version)
+      tags: [Tools]
+      parameters:
+        - $ref: '#/components/parameters/ToolId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ToolUpdate'
+      responses:
+        '200':
+          description: Tool updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Tool not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      operationId: deleteTool
+      summary: Delete a tool
+      tags: [Tools]
+      parameters:
+        - $ref: '#/components/parameters/ToolId'
+      responses:
+        '204':
+          description: Tool deleted
+        '404':
+          description: Tool not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tools/{tool_id}/activate:
+    post:
+      operationId: activateTool
+      summary: Activate a tool (set status to ACTIVE)
+      tags: [Tools]
+      parameters:
+        - $ref: '#/components/parameters/ToolId'
+      responses:
+        '200':
+          description: Tool activated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolResponse'
+        '404':
+          description: Tool not found
+
+  /tools/{tool_id}/deactivate:
+    post:
+      operationId: deactivateTool
+      summary: Deactivate a tool (set status to DISABLED)
+      tags: [Tools]
+      parameters:
+        - $ref: '#/components/parameters/ToolId'
+      responses:
+        '200':
+          description: Tool deactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolResponse'
+        '404':
+          description: Tool not found
+
+  /tools/{tool_id}/execute:
+    post:
+      operationId: executeTool
+      summary: Execute a tool (async, returns execution ID)
+      tags: [Executions]
+      parameters:
+        - $ref: '#/components/parameters/ToolId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionRequest'
+      responses:
+        '202':
+          description: Execution started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResponse'
+        '400':
+          description: Tool not active or invalid parameters
+        '404':
+          description: Tool not found
+
+  /tools/{tool_id}/executions:
+    get:
+      operationId: listToolExecutions
+      summary: List executions for a tool
+      tags: [Executions]
+      parameters:
+        - $ref: '#/components/parameters/ToolId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ExecutionStatus'
+      responses:
+        '200':
+          description: List of executions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExecutionResponse'
+
+  /tools/{tool_id}/validate:
+    post:
+      operationId: validateTool
+      summary: Validate tool configuration without saving
+      tags: [Tools]
+      parameters:
+        - $ref: '#/components/parameters/ToolId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ToolValidateRequest'
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResponse'
+
+  /executions/{execution_id}:
+    get:
+      operationId: getExecution
+      summary: Get execution by ID
+      tags: [Executions]
+      parameters:
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Execution details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResponse'
+        '404':
+          description: Execution not found
+
+  /executions/{execution_id}/cancel:
+    post:
+      operationId: cancelExecution
+      summary: Cancel a pending or running execution
+      tags: [Executions]
+      parameters:
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Execution cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResponse'
+        '400':
+          description: Cannot cancel (already completed)
+        '404':
+          description: Execution not found
+
+  /categories:
+    get:
+      operationId: listCategories
+      summary: List all categories
+      tags: [Categories]
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryResponse'
+
+    post:
+      operationId: createCategory
+      summary: Create a new category
+      tags: [Categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreate'
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+
+components:
+  parameters:
+    ToolId:
+      name: tool_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Tool UUID
+
+  schemas:
+    ToolStatus:
+      type: string
+      enum: [draft, active, deprecated, disabled]
+
+    ExecutionStatus:
+      type: string
+      enum: [pending, running, success, failed, timeout, cancelled]
+
+    ToolCreate:
+      type: object
+      required:
+        - name
+        - display_name
+        - description
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: '^[a-z][a-z0-9_]*$'
+          description: Unique identifier (snake_case)
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+        category_id:
+          type: string
+          format: uuid
+        tags:
+          type: array
+          items:
+            type: string
+          default: []
+        input_schema:
+          type: object
+          description: JSON Schema for input parameters
+          default: {}
+        output_schema:
+          type: object
+          description: JSON Schema for output
+          default: {}
+        script_content:
+          type: string
+          description: Python script source code
+        executor_type:
+          type: string
+          enum: [python, http, shell, mcp]
+          default: python
+        executor_config:
+          type: object
+          default: {}
+
+    ToolUpdate:
+      type: object
+      properties:
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/ToolStatus'
+        category_id:
+          type: string
+          format: uuid
+        tags:
+          type: array
+          items:
+            type: string
+        input_schema:
+          type: object
+        output_schema:
+          type: object
+        script_content:
+          type: string
+        executor_config:
+          type: object
+
+    ToolResponse:
+      type: object
+      required:
+        - id
+        - name
+        - display_name
+        - description
+        - status
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        display_name:
+          type: string
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/ToolStatus'
+        category_id:
+          type: string
+          format: uuid
+        category:
+          $ref: '#/components/schemas/CategoryResponse'
+        tags:
+          type: array
+          items:
+            type: string
+        input_schema:
+          type: object
+        output_schema:
+          type: object
+        script_content:
+          type: string
+        executor_type:
+          type: string
+        executor_config:
+          type: object
+        version:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ToolListResponse:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - page_size
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolResponse'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+
+    ToolValidateRequest:
+      type: object
+      properties:
+        input_schema:
+          type: object
+        script_content:
+          type: string
+
+    ValidationResponse:
+      type: object
+      required:
+        - valid
+      properties:
+        valid:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    ExecutionRequest:
+      type: object
+      properties:
+        input_data:
+          type: object
+          default: {}
+        caller_id:
+          type: string
+        trace_id:
+          type: string
+
+    ExecutionResponse:
+      type: object
+      required:
+        - id
+        - tool_id
+        - version
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tool_id:
+          type: string
+          format: uuid
+        version:
+          type: string
+        status:
+          $ref: '#/components/schemas/ExecutionStatus'
+        input_data:
+          type: object
+        output_data:
+          type: object
+        error_message:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        duration_ms:
+          type: integer
+        caller_id:
+          type: string
+        trace_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    CategoryCreate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        parent_id:
+          type: string
+          format: uuid
+
+    CategoryResponse:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        parent_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
