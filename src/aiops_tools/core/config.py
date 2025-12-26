@@ -19,8 +19,13 @@ class Settings(BaseSettings):
     # Application
     app_name: str = "AIOps Tools"
     app_version: str = "0.1.0"
+    app_description: str = "LLM Tool Management System - Create, manage, and execute tools for LLM function calling"
     debug: bool = False
     environment: Literal["development", "staging", "production"] = "development"
+
+    # Server
+    host: str = "0.0.0.0"
+    port: int = 6060
 
     # API
     api_v1_prefix: str = "/api/v1"
@@ -41,7 +46,7 @@ class Settings(BaseSettings):
     celery_result_backend: str = "redis://localhost:6379/2"
 
     # Tool Execution
-    tool_execution_timeout: int = 300  # seconds
+    tool_execution_timeout: int = 30  # seconds (spec: FR-014)
     max_concurrent_executions: int = 10
 
 

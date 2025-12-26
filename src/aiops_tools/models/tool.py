@@ -63,12 +63,15 @@ class Tool(BaseModel, table=True):
     input_schema: dict[str, Any] = Field(default={}, sa_column=Column(JSONB))
     output_schema: dict[str, Any] = Field(default={}, sa_column=Column(JSONB))
 
+    # Python script content (for executor_type="python")
+    script_content: str | None = None
+
     # Execution configuration
     executor_type: str = Field(default="python")  # python, http, shell, mcp
     executor_config: dict[str, Any] = Field(default={}, sa_column=Column(JSONB))
 
-    # Versioning
-    current_version: str = Field(default="1.0.0")
+    # Versioning (auto-incremented on each save)
+    version: int = Field(default=1)
 
     # Relationships
     category: ToolCategory | None = Relationship(back_populates="tools")
@@ -89,6 +92,7 @@ class ToolVersion(BaseModel, table=True):
     input_schema: dict[str, Any] = Field(default={}, sa_column=Column(JSONB))
     output_schema: dict[str, Any] = Field(default={}, sa_column=Column(JSONB))
     executor_config: dict[str, Any] = Field(default={}, sa_column=Column(JSONB))
+    script_content: str | None = None
 
     is_latest: bool = Field(default=True)
 

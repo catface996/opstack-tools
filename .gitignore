@@ -50,3 +50,13 @@ alembic/versions/*.pyc
 # Logs
 *.log
 logs/
+
+# Node.js / Frontend
+node_modules/
+frontend/dist/
+frontend/build/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

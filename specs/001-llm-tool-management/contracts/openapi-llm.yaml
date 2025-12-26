@@ -1,0 +1,278 @@
+openapi: 3.1.0
+info:
+  title: LLM Tool Query API
+  description: |
+    Public API for LLM systems to discover and invoke tools.
+    Returns tools in OpenAI function calling format.
+    No authentication required.
+  version: 1.0.0
+
+servers:
+  - url: /api/v1/llm
+    description: LLM API v1
+
+paths:
+  /tools:
+    get:
+      operationId: listToolsForLLM
+      summary: List all active tools in LLM format
+      description: |
+        Returns a list of active tools formatted for LLM function calling.
+        Only returns tools with status=ACTIVE.
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter by category name
+        - name: tags
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter by tags (comma-separated)
+      responses:
+        '200':
+          description: List of tools in LLM format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LLMToolListResponse'
+              example:
+                tools:
+                  - type: function
+                    function:
+                      name: web_search
+                      description: Search the web for information
+                      parameters:
+                        type: object
+                        properties:
+                          query:
+                            type: string
+                            description: Search query
+                          limit:
+                            type: integer
+                            description: Maximum results
+                            default: 10
+                        required:
+                          - query
+
+  /tools/{tool_name}:
+    get:
+      operationId: getToolForLLM
+      summary: Get a specific tool by name in LLM format
+      parameters:
+        - name: tool_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Tool name (snake_case identifier)
+      responses:
+        '200':
+          description: Tool in LLM format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LLMToolResponse'
+        '404':
+          description: Tool not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tools/{tool_name}/invoke:
+    post:
+      operationId: invokeTool
+      summary: Invoke a tool with parameters
+      description: |
+        Execute a tool with the provided parameters.
+        Returns execution result synchronously (waits for completion up to 30s timeout).
+      parameters:
+        - name: tool_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Tool name (snake_case identifier)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ToolInvokeRequest'
+            example:
+              arguments:
+                query: "latest AI news"
+                limit: 5
+              caller_id: "claude-agent-1"
+              trace_id: "trace-123"
+      responses:
+        '200':
+          description: Tool execution completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolInvokeResponse'
+              example:
+                success: true
+                result:
+                  results:
+                    - title: "AI Breakthrough"
+                      url: "https://example.com/ai"
+                  total: 1
+                execution_id: "550e8400-e29b-41d4-a716-446655440000"
+                duration_ms: 1234
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Tool not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '408':
+          description: Execution timeout (30s exceeded)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolInvokeResponse'
+              example:
+                success: false
+                error: "Execution timeout after 30 seconds"
+                execution_id: "550e8400-e29b-41d4-a716-446655440000"
+        '500':
+          description: Execution error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolInvokeResponse'
+
+components:
+  schemas:
+    LLMToolListResponse:
+      type: object
+      required:
+        - tools
+      properties:
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/LLMTool'
+
+    LLMToolResponse:
+      $ref: '#/components/schemas/LLMTool'
+
+    LLMTool:
+      type: object
+      description: Tool definition in OpenAI function calling format
+      required:
+        - type
+        - function
+      properties:
+        type:
+          type: string
+          enum: [function]
+          default: function
+        function:
+          type: object
+          required:
+            - name
+            - description
+            - parameters
+          properties:
+            name:
+              type: string
+              description: Tool identifier (snake_case)
+              pattern: '^[a-z][a-z0-9_]*$'
+            description:
+              type: string
+              description: Tool description for LLM understanding
+            parameters:
+              type: object
+              description: JSON Schema for tool parameters
+              properties:
+                type:
+                  type: string
+                  enum: [object]
+                properties:
+                  type: object
+                  additionalProperties:
+                    $ref: '#/components/schemas/JSONSchemaProperty'
+                required:
+                  type: array
+                  items:
+                    type: string
+
+    JSONSchemaProperty:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [string, number, integer, boolean, array, object]
+        description:
+          type: string
+        default:
+          {}
+        enum:
+          type: array
+        minimum:
+          type: number
+        maximum:
+          type: number
+        items:
+          $ref: '#/components/schemas/JSONSchemaProperty'
+
+    ToolInvokeRequest:
+      type: object
+      required:
+        - arguments
+      properties:
+        arguments:
+          type: object
+          description: Tool input parameters (must match tool's input_schema)
+          additionalProperties: true
+        caller_id:
+          type: string
+          description: Identifier of the calling agent/user
+        trace_id:
+          type: string
+          description: Distributed tracing ID
+
+    ToolInvokeResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          description: Whether execution completed successfully
+        result:
+          type: object
+          description: Tool output (if success=true)
+          additionalProperties: true
+        error:
+          type: string
+          description: Error message (if success=false)
+        execution_id:
+          type: string
+          format: uuid
+          description: Unique execution record ID
+        duration_ms:
+          type: integer
+          description: Execution duration in milliseconds
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Error description

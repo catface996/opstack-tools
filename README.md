@@ -1,115 +1,80 @@
 # AIOps Tools
 
-Agent Tools 管理平台 - 管理 AI Agent 可调用的工具，包括工具注册、执行、监控和日志等功能。
+LLM Tool Management System - Create, manage, and execute tools for LLM function calling.
 
-## 技术栈
+## Features
 
-| 组件 | 技术 | 说明 |
-|------|------|------|
-| Web 框架 | FastAPI | 高性能异步框架，自动生成 OpenAPI 文档 |
-| ORM | SQLAlchemy 2.0 + SQLModel | 类型安全的 ORM，与 Pydantic 深度集成 |
-| 数据库 | PostgreSQL | 支持 JSONB 存储工具 schema |
-| 缓存 | Redis | 工具执行状态缓存 |
-| 任务队列 | Celery | 异步执行工具，支持超时控制 |
-| 迁移 | Alembic | 数据库版本管理 |
+- **Tool Management**: Create, update, and delete tools via web interface
+- **LLM-Compatible API**: OpenAI function calling format for tool discovery and invocation
+- **Python Script Execution**: Execute Python scripts as tools with 30-second timeout
+- **Version Control**: Auto-increment version on each tool update
 
-## 项目结构
+## Quick Start
 
-```
-aiops-tools/
-├── src/aiops_tools/
-│   ├── api/v1/           # API 路由
-│   │   └── endpoints/    # 具体端点
-│   ├── core/             # 核心配置
-│   │   ├── config.py     # 应用配置
-│   │   ├── database.py   # 数据库连接
-│   │   └── redis.py      # Redis 连接
-│   ├── models/           # 数据库模型
-│   ├── schemas/          # Pydantic schemas
-│   ├── services/         # 业务逻辑
-│   └── main.py           # 应用入口
-├── tests/                # 测试
-├── alembic/              # 数据库迁移
-├── docker-compose.yml    # Docker 编排
-└── pyproject.toml        # 项目配置
-```
-
-## 快速开始
-
-### 使用 Docker Compose（推荐）
+### Using Docker Compose
 
 ```bash
-# 启动所有服务
+# Start all services (API, PostgreSQL, Redis, Celery)
 docker-compose up -d
 
-# 查看日志
+# View logs
 docker-compose logs -f api
 ```
 
-API 文档: http://localhost:8000/api/v1/docs
+### Access Points
 
-### 本地开发
+- **API**: http://localhost:6060
+- **Swagger UI**: http://localhost:6060/docs
+- **ReDoc**: http://localhost:6060/redoc
+- **Frontend**: http://localhost:3000 (when running separately)
+
+### API Endpoints
+
+#### Tool Management
+- `GET /api/v1/tools` - List tools with pagination
+- `POST /api/v1/tools` - Create new tool
+- `GET /api/v1/tools/{id}` - Get tool details
+- `PATCH /api/v1/tools/{id}` - Update tool
+- `DELETE /api/v1/tools/{id}` - Delete tool
+
+#### LLM API (OpenAI Function Calling Format)
+- `GET /api/v1/llm/tools` - List tools in LLM format
+- `GET /api/v1/llm/tools/{name}` - Get single tool
+- `POST /api/v1/llm/tools/{name}/invoke` - Execute tool
+
+## Development
+
+### Prerequisites
+
+- Python 3.11+
+- PostgreSQL 16+
+- Redis 7+
+- Node.js 18+ (for frontend)
+
+### Local Development
 
 ```bash
-# 创建虚拟环境
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# .venv\Scripts\activate   # Windows
+# Install Python dependencies
+pip install -e .
 
-# 安装依赖
-pip install -e ".[dev]"
+# Start backend (requires PostgreSQL and Redis)
+uvicorn aiops_tools.main:app --host 0.0.0.0 --port 6060 --reload
 
-# 复制环境变量配置
-cp .env.example .env
-
-# 启动 PostgreSQL 和 Redis（使用 Docker）
-docker-compose up -d db redis
-
-# 运行数据库迁移
-alembic upgrade head
-
-# 启动开发服务器
-uvicorn aiops_tools.main:app --reload
+# Start frontend
+cd frontend
+npm install
+npm run dev
 ```
 
-## API 端点
+### Environment Variables
 
-### 工具管理
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | 6060 | API server port |
+| `DATABASE_URL` | postgresql+asyncpg://... | PostgreSQL connection URL |
+| `REDIS_URL` | redis://localhost:6379/0 | Redis connection URL |
+| `DEBUG` | false | Enable debug mode |
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /api/v1/tools | 创建工具 |
-| GET | /api/v1/tools | 获取工具列表 |
-| GET | /api/v1/tools/{id} | 获取工具详情 |
-| PATCH | /api/v1/tools/{id} | 更新工具 |
-| DELETE | /api/v1/tools/{id} | 删除工具 |
-| POST | /api/v1/tools/{id}/activate | 激活工具 |
-| POST | /api/v1/tools/{id}/deactivate | 停用工具 |
+## License
 
-### 工具分类
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /api/v1/tools/categories | 创建分类 |
-| GET | /api/v1/tools/categories | 获取分类列表 |
-| GET | /api/v1/tools/categories/{id} | 获取分类详情 |
-| PATCH | /api/v1/tools/categories/{id} | 更新分类 |
-| DELETE | /api/v1/tools/categories/{id} | 删除分类 |
-
-### 工具执行
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /api/v1/tools/{id}/execute | 执行工具 |
-| GET | /api/v1/tools/{id}/executions | 获取执行历史 |
-| GET | /api/v1/tools/executions/{id} | 获取执行详情 |
-| POST | /api/v1/tools/executions/{id}/cancel | 取消执行 |
-
-## 下一步
-
-- [ ] 实现 Celery Worker 执行逻辑
-- [ ] 添加用户认证 (JWT)
-- [ ] 实现工具版本管理
-- [ ] 添加执行日志和监控
-- [ ] 支持 MCP (Model Context Protocol) 工具
-- [ ] 添加单元测试和集成测试
+MIT

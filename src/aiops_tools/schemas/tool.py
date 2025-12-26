@@ -21,13 +21,14 @@ class ToolCategoryBase(BaseModel):
 class ToolBase(BaseModel):
     """Base schema for tool."""
 
-    name: str = Field(..., min_length=1, max_length=100)
+    name: str = Field(..., min_length=1, max_length=100, pattern=r"^[a-z][a-z0-9_]*$")
     display_name: str = Field(..., min_length=1, max_length=200)
     description: str
     category_id: UUID | None = None
     tags: list[str] = []
     input_schema: dict[str, Any] = {}
     output_schema: dict[str, Any] = {}
+    script_content: str | None = None
     executor_type: str = "python"
     executor_config: dict[str, Any] = {}
 
@@ -64,6 +65,7 @@ class ToolUpdate(BaseModel):
     tags: list[str] | None = None
     input_schema: dict[str, Any] | None = None
     output_schema: dict[str, Any] | None = None
+    script_content: str | None = None
     executor_config: dict[str, Any] | None = None
 
 
@@ -83,7 +85,7 @@ class ToolResponse(ToolBase):
 
     id: UUID
     status: ToolStatus
-    current_version: str
+    version: int
     created_at: datetime
     updated_at: datetime
     category: ToolCategoryResponse | None = None
@@ -100,10 +102,64 @@ class ToolListResponse(BaseModel):
     page_size: int
 
 
+# Request schemas for POST-only API
+class ToolListRequest(BaseModel):
+    """Request schema for listing tools."""
+
+    page: int = Field(1, ge=1)
+    page_size: int = Field(20, ge=1, le=100)
+    status: ToolStatus | None = None
+    category_id: UUID | None = None
+    search: str | None = None
+
+
+class ToolGetRequest(BaseModel):
+    """Request schema for getting a tool by ID."""
+
+    tool_id: UUID
+
+
+class ToolDeleteRequest(BaseModel):
+    """Request schema for deleting a tool."""
+
+    tool_id: UUID
+
+
+class ToolUpdateRequest(ToolUpdate):
+    """Request schema for updating a tool."""
+
+    tool_id: UUID
+
+
+class CategoryGetRequest(BaseModel):
+    """Request schema for getting a category by ID."""
+
+    category_id: UUID
+
+
+class CategoryDeleteRequest(BaseModel):
+    """Request schema for deleting a category."""
+
+    category_id: UUID
+
+
+class CategoryUpdateRequest(ToolCategoryUpdate):
+    """Request schema for updating a category."""
+
+    category_id: UUID
+
+
+class ExecutionCancelRequest(BaseModel):
+    """Request schema for canceling an execution."""
+
+    execution_id: UUID
+
+
 # Execution schemas
 class ToolExecutionRequest(BaseModel):
     """Request schema for tool execution."""
 
+    tool_id: UUID
     input_data: dict[str, Any] = {}
     caller_id: str | None = None
     trace_id: str | None = None
