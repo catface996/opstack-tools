@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     # Server
     host: str = "0.0.0.0"
-    port: int = 6060
+    port: int = 8083
 
     # API
     api_v1_prefix: str = "/api/tools/v1"
