@@ -75,8 +75,14 @@ class Tool(BaseModel, table=True):
 
     # Relationships
     category: ToolCategory | None = Relationship(back_populates="tools")
-    versions: list["ToolVersion"] = Relationship(back_populates="tool")
-    executions: list["ToolExecution"] = Relationship(back_populates="tool")
+    versions: list["ToolVersion"] = Relationship(
+        back_populates="tool",
+        sa_relationship_kwargs={"passive_deletes": True},
+    )
+    executions: list["ToolExecution"] = Relationship(
+        back_populates="tool",
+        sa_relationship_kwargs={"passive_deletes": True},
+    )
 
 
 class ToolVersion(BaseModel, table=True):
@@ -84,7 +90,7 @@ class ToolVersion(BaseModel, table=True):
 
     __tablename__ = "tool_versions"
 
-    tool_id: UUID = Field(foreign_key="tools.id")
+    tool_id: UUID = Field(foreign_key="tools.id", ondelete="CASCADE")
     version: str
     changelog: str | None = None
 
@@ -105,7 +111,7 @@ class ToolExecution(BaseModel, table=True):
 
     __tablename__ = "tool_executions"
 
-    tool_id: UUID = Field(foreign_key="tools.id")
+    tool_id: UUID = Field(foreign_key="tools.id", ondelete="CASCADE")
     version: str
 
     # Execution details

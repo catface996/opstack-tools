@@ -45,6 +45,21 @@ def execute_script(
 
     start_time = time.time()
 
+    # Wrap user script with IO handling
+    wrapper_script = f'''
+import sys
+import json
+
+# User-defined script
+{script_content}
+
+# Read input from stdin and execute main()
+if __name__ == "__main__":
+    input_data = json.loads(sys.stdin.read())
+    result = main(input_data)
+    print(json.dumps(result))
+'''
+
     # Create temporary file for the script
     with tempfile.NamedTemporaryFile(
         mode="w",
@@ -52,7 +67,7 @@ def execute_script(
         delete=False,
         encoding="utf-8",
     ) as f:
-        f.write(script_content)
+        f.write(wrapper_script)
         script_path = Path(f.name)
 
     try:
