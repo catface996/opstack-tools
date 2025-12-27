@@ -3,14 +3,22 @@
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
 
 from aiops_tools.api.v1.router import api_router
 from aiops_tools.core.config import settings
 from aiops_tools.core.database import init_db
+from aiops_tools.core.errors import (
+    APIError,
+    ErrorCode,
+    ErrorDetail,
+    ErrorResponse,
+)
 from aiops_tools.core.redis import close_redis, get_redis
 
 
@@ -197,6 +205,94 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Exception handlers for consistent error responses
+@app.exception_handler(APIError)
+async def api_error_handler(request: Request, exc: APIError) -> JSONResponse:
+    """Handle custom APIError exceptions with structured response."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=exc.detail,
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    """Handle standard HTTPException with consistent format."""
+    # If it's already in our format, return as-is
+    if isinstance(exc.detail, dict) and "error" in exc.detail:
+        return JSONResponse(status_code=exc.status_code, content=exc.detail)
+
+    # Convert to standard format
+    error_detail = ErrorDetail(
+        code=ErrorCode.INTERNAL_ERROR.value if exc.status_code >= 500 else "HTTP_ERROR",
+        message=str(exc.detail) if exc.detail else "An error occurred",
+    )
+    response = ErrorResponse(error=error_detail)
+    return JSONResponse(status_code=exc.status_code, content=response.model_dump())
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """Handle Pydantic/FastAPI validation errors with helpful messages."""
+    errors = []
+    for error in exc.errors():
+        field = ".".join(str(loc) for loc in error["loc"] if loc != "body")
+        msg = error["msg"]
+        error_type = error.get("type", "")
+
+        # Map common error types to helpful suggestions
+        suggestion = None
+        if "string_pattern_mismatch" in error_type:
+            suggestion = "Tool name must start with a lowercase letter and contain only lowercase letters, numbers, and underscores. Example: 'my_tool', 'k8s_list_pods'"
+        elif "missing" in error_type:
+            suggestion = f"The field '{field}' is required. Please provide a value."
+        elif "uuid" in error_type.lower():
+            suggestion = "Please provide a valid UUID in format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+        elif "string_too_short" in error_type:
+            suggestion = f"The field '{field}' is too short. Please provide a longer value."
+        elif "string_too_long" in error_type:
+            suggestion = f"The field '{field}' is too long. Please provide a shorter value."
+        elif "json_invalid" in error_type:
+            suggestion = "Please provide valid JSON in the request body."
+
+        errors.append(
+            ErrorDetail(
+                code=ErrorCode.INVALID_FIELD.value,
+                field=field,
+                message=msg,
+                suggestion=suggestion,
+            )
+        )
+
+    response = ErrorResponse(
+        error=ErrorDetail(
+            code=ErrorCode.VALIDATION_ERROR.value,
+            message=f"Request validation failed with {len(errors)} error(s)",
+        ),
+        errors=errors,
+    )
+    return JSONResponse(
+        status_code=422,
+        content=response.model_dump(),
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Handle unexpected exceptions."""
+    error_detail = ErrorDetail(
+        code=ErrorCode.INTERNAL_ERROR.value,
+        message="An unexpected error occurred. Please try again later.",
+        details={"error_type": type(exc).__name__} if settings.debug else None,
+    )
+    response = ErrorResponse(error=error_detail)
+    return JSONResponse(
+        status_code=500,
+        content=response.model_dump(),
+    )
+
 
 # Include API router
 app.include_router(api_router, prefix=settings.api_v1_prefix)

@@ -14,6 +14,7 @@ from aiops_tools.schemas.tool import (
     CategoryGetRequest,
     CategoryUpdateRequest,
     ExecutionCancelRequest,
+    PaginatedData,
     ToolCategoryCreate,
     ToolCategoryResponse,
     ToolCategoryUpdate,
@@ -31,6 +32,7 @@ from aiops_tools.schemas.tool import (
 
 __all__ = [
     # Tool schemas
+    "PaginatedData",
     "ToolCategoryCreate",
     "ToolCategoryResponse",
     "ToolCategoryUpdate",

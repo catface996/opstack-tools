@@ -1,18 +1,17 @@
 <!--
 Sync Impact Report:
-- Version change: 0.0.0 → 1.0.0 (Initial constitution)
+- Version change: 1.0.0 → 1.1.0
 - Added principles:
-  - I. URL Convention
-  - II. POST-Only API
-  - III. Tool Execution Safety
-  - IV. LLM Compatibility
-- Added sections:
-  - Technology Stack
-  - API Standards
+  - V. Pagination Standards
+  - VI. Response Format
+- Updated sections:
+  - API Standards (pagination request/response format)
 - Templates requiring updates:
   - .specify/templates/plan-template.md ✅ (Constitution Check section exists)
   - .specify/templates/spec-template.md ✅ (No constitution-specific updates needed)
-- Follow-up TODOs: None
+- Follow-up TODOs:
+  - Update existing list endpoints to use new pagination format
+  - Update response format to include code/message/success wrapper
 -->
 
 # AIOps Tools Constitution
@@ -87,6 +86,94 @@ Tool definitions MUST be compatible with OpenAI function calling format.
 
 **Rationale**: Enables seamless integration with LLM agents and maintains compatibility with industry standards.
 
+### V. Pagination Standards
+
+All list endpoints MUST use standardized pagination request and response formats.
+
+**Pagination Request Format**:
+```json
+{
+  "page": 1,
+  "size": 20,
+  "tenantId": null,
+  "traceId": null,
+  "userId": null
+}
+```
+
+**Rules**:
+- `page`: Page number, starts from 1, default 1, minimum 1
+- `size`: Page size, default 20, range 1-100
+- `tenantId`, `traceId`, `userId`: Gateway-injected fields (hidden from user input)
+
+**Pagination Response Format**:
+```json
+{
+  "code": 0,
+  "message": "success",
+  "success": true,
+  "data": {
+    "content": [],
+    "page": 1,
+    "size": 10,
+    "totalElements": 100,
+    "totalPages": 10,
+    "first": true,
+    "last": false
+  }
+}
+```
+
+**Response Fields**:
+- `content`: Data list for current page
+- `page`: Current page number (starts from 1)
+- `size`: Page size
+- `totalElements`: Total record count
+- `totalPages`: Total page count
+- `first`: Whether this is the first page
+- `last`: Whether this is the last page
+
+**Rationale**: Standardized pagination format ensures consistent client implementation and predictable API behavior across all list endpoints.
+
+### VI. Response Format
+
+All API responses MUST follow a standardized wrapper format.
+
+**Success Response**:
+```json
+{
+  "code": 0,
+  "message": "success",
+  "success": true,
+  "data": { ... }
+}
+```
+
+**Error Response**:
+```json
+{
+  "code": <error_code>,
+  "message": "<error_message>",
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "<ERROR_CODE>",
+    "field": "<field_name>",
+    "message": "<detailed_message>",
+    "suggestion": "<how_to_fix>"
+  }
+}
+```
+
+**Rules**:
+- `code`: 0 for success, non-zero for errors
+- `message`: Human-readable message
+- `success`: Boolean indicating success/failure
+- `data`: Response payload (null on error)
+- `error`: Detailed error information (only on error)
+
+**Rationale**: Consistent response format enables standardized error handling and simplifies client-side parsing.
+
 ## Technology Stack
 
 **Core Technologies**:
@@ -110,26 +197,15 @@ Tool definitions MUST be compatible with OpenAI function calling format.
 - All timestamps in ISO 8601 format
 - UUIDs for entity identifiers
 
-**Pagination**:
+**Pagination** (see Principle V for detailed format):
 - Default page size: 20
 - Maximum page size: 100
-- Parameters: `page`, `page_size`
+- Request parameters: `page` (from 1), `size`
+- Response includes: `content`, `page`, `size`, `totalElements`, `totalPages`, `first`, `last`
 
-**Error Response Format**:
-```json
-{
-  "detail": "Error message"
-}
-```
-
-Or for validation errors:
-```json
-{
-  "detail": {
-    "validation_errors": [...]
-  }
-}
-```
+**Response Wrapper** (see Principle VI for detailed format):
+- All responses wrapped with `code`, `message`, `success`, `data`
+- Error responses include additional `error` object with details
 
 ## Governance
 

@@ -93,24 +93,40 @@ class ToolResponse(ToolBase):
     model_config = {"from_attributes": True}
 
 
-class ToolListResponse(BaseModel):
-    """Paginated list response for tools."""
+class PaginatedData(BaseModel):
+    """Paginated data following constitution standards (Principle V)."""
 
-    items: list[ToolResponse]
-    total: int
+    content: list[ToolResponse]
     page: int
-    page_size: int
+    size: int
+    totalElements: int
+    totalPages: int
+    first: bool
+    last: bool
+
+
+class ToolListResponse(BaseModel):
+    """Paginated list response for tools following constitution standards (Principle V & VI)."""
+
+    code: int = 0
+    message: str = "success"
+    success: bool = True
+    data: PaginatedData
 
 
 # Request schemas for POST-only API
 class ToolListRequest(BaseModel):
-    """Request schema for listing tools."""
+    """Request schema for listing tools following constitution standards (Principle V)."""
 
-    page: int = Field(1, ge=1)
-    page_size: int = Field(20, ge=1, le=100)
+    page: int = Field(1, ge=1, description="Page number, starts from 1")
+    size: int = Field(20, ge=1, le=100, description="Page size, range 1-100")
     status: ToolStatus | None = None
     category_id: UUID | None = None
     search: str | None = None
+    # Gateway-injected fields (hidden from user input in OpenAPI)
+    tenantId: str | None = Field(None, json_schema_extra={"hidden": True})
+    traceId: str | None = Field(None, json_schema_extra={"hidden": True})
+    userId: str | None = Field(None, json_schema_extra={"hidden": True})
 
 
 class ToolGetRequest(BaseModel):
