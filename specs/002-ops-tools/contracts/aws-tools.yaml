@@ -1,0 +1,391 @@
+# AWS Cloud Tools Contracts
+# These define the input/output schemas for AWS tools
+
+tools:
+  - name: aws_list_ec2_instances
+    display_name: List EC2 Instances
+    description: |
+      List EC2 instances in a region with their status, type, and key details.
+      Supports filtering by instance state or tags.
+    tags: [aws, ec2, instances, list]
+    input_schema:
+      type: object
+      properties:
+        region:
+          type: string
+          description: AWS region (e.g., us-east-1, eu-west-1)
+        aws_access_key_id:
+          type: string
+          description: AWS access key (optional, uses default credentials if not provided)
+        aws_secret_access_key:
+          type: string
+          description: AWS secret key
+        filters:
+          type: array
+          description: Filters to apply (e.g., instance-state-name, tag:Name)
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              values:
+                type: array
+                items:
+                  type: string
+        max_results:
+          type: integer
+          description: Maximum number of instances to return
+          default: 100
+      required:
+        - region
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            region:
+              type: string
+            instances:
+              type: array
+              items:
+                type: object
+                properties:
+                  instance_id:
+                    type: string
+                  name:
+                    type: string
+                  state:
+                    type: string
+                  instance_type:
+                    type: string
+                  private_ip:
+                    type: string
+                  public_ip:
+                    type: string
+                  availability_zone:
+                    type: string
+                  launch_time:
+                    type: string
+            total_count:
+              type: integer
+
+  - name: aws_describe_instance
+    display_name: Describe EC2 Instance
+    description: |
+      Get detailed information about a specific EC2 instance including
+      network configuration, security groups, and tags.
+    tags: [aws, ec2, instances, describe]
+    input_schema:
+      type: object
+      properties:
+        region:
+          type: string
+        instance_id:
+          type: string
+          description: EC2 instance ID (e.g., i-1234567890abcdef0)
+        aws_access_key_id:
+          type: string
+        aws_secret_access_key:
+          type: string
+      required:
+        - region
+        - instance_id
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            instance_id:
+              type: string
+            name:
+              type: string
+            state:
+              type: string
+            instance_type:
+              type: string
+            ami_id:
+              type: string
+            platform:
+              type: string
+            architecture:
+              type: string
+            vpc_id:
+              type: string
+            subnet_id:
+              type: string
+            private_ip:
+              type: string
+            public_ip:
+              type: string
+            private_dns:
+              type: string
+            public_dns:
+              type: string
+            availability_zone:
+              type: string
+            launch_time:
+              type: string
+            security_groups:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+            tags:
+              type: object
+              additionalProperties:
+                type: string
+            monitoring:
+              type: string
+            ebs_optimized:
+              type: boolean
+
+  - name: aws_list_s3_buckets
+    display_name: List S3 Buckets
+    description: |
+      List all S3 buckets in the account with their creation dates and regions.
+    tags: [aws, s3, buckets, list]
+    input_schema:
+      type: object
+      properties:
+        aws_access_key_id:
+          type: string
+        aws_secret_access_key:
+          type: string
+        region:
+          type: string
+          description: Region for S3 client (buckets are global but client needs region)
+          default: "us-east-1"
+      required: []
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            buckets:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  creation_date:
+                    type: string
+                  region:
+                    type: string
+            total_count:
+              type: integer
+
+  - name: aws_list_s3_objects
+    display_name: List S3 Objects
+    description: |
+      List objects in an S3 bucket with optional prefix filtering.
+      Returns object keys, sizes, and last modified dates.
+    tags: [aws, s3, objects, list]
+    input_schema:
+      type: object
+      properties:
+        bucket:
+          type: string
+          description: S3 bucket name
+        prefix:
+          type: string
+          description: Filter objects by prefix (e.g., "logs/2024/")
+        aws_access_key_id:
+          type: string
+        aws_secret_access_key:
+          type: string
+        region:
+          type: string
+        max_keys:
+          type: integer
+          description: Maximum number of objects to return
+          default: 1000
+      required:
+        - bucket
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            bucket:
+              type: string
+            prefix:
+              type: string
+            objects:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  size_bytes:
+                    type: integer
+                  last_modified:
+                    type: string
+                  storage_class:
+                    type: string
+            total_count:
+              type: integer
+            truncated:
+              type: boolean
+
+  - name: aws_describe_rds
+    display_name: Describe RDS Instance
+    description: |
+      Get detailed information about an RDS database instance including
+      endpoint, storage, and configuration.
+    tags: [aws, rds, database, describe]
+    input_schema:
+      type: object
+      properties:
+        region:
+          type: string
+        db_instance_identifier:
+          type: string
+          description: RDS instance identifier
+        aws_access_key_id:
+          type: string
+        aws_secret_access_key:
+          type: string
+      required:
+        - region
+        - db_instance_identifier
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            db_instance_identifier:
+              type: string
+            db_instance_class:
+              type: string
+            engine:
+              type: string
+            engine_version:
+              type: string
+            status:
+              type: string
+            endpoint:
+              type: object
+              properties:
+                address:
+                  type: string
+                port:
+                  type: integer
+            allocated_storage_gb:
+              type: integer
+            storage_type:
+              type: string
+            multi_az:
+              type: boolean
+            availability_zone:
+              type: string
+            vpc_id:
+              type: string
+            publicly_accessible:
+              type: boolean
+            backup_retention_days:
+              type: integer
+            latest_restorable_time:
+              type: string
+            tags:
+              type: object
+              additionalProperties:
+                type: string
+
+  - name: aws_get_cloudwatch_metrics
+    display_name: Get CloudWatch Metrics
+    description: |
+      Retrieve CloudWatch metrics for AWS resources.
+      Supports common metrics for EC2, RDS, and other services.
+    tags: [aws, cloudwatch, metrics, monitoring]
+    input_schema:
+      type: object
+      properties:
+        region:
+          type: string
+        namespace:
+          type: string
+          description: CloudWatch namespace (e.g., AWS/EC2, AWS/RDS)
+        metric_name:
+          type: string
+          description: Metric name (e.g., CPUUtilization, DatabaseConnections)
+        dimensions:
+          type: array
+          description: Dimensions to filter metrics
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: string
+        period:
+          type: integer
+          description: Period in seconds for data points
+          default: 300
+        statistic:
+          type: string
+          enum: [Average, Sum, Minimum, Maximum, SampleCount]
+          default: Average
+        start_time:
+          type: string
+          description: Start time (ISO 8601 or relative like "-1h")
+        end_time:
+          type: string
+          description: End time (ISO 8601 or "now")
+        aws_access_key_id:
+          type: string
+        aws_secret_access_key:
+          type: string
+      required:
+        - region
+        - namespace
+        - metric_name
+        - dimensions
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            namespace:
+              type: string
+            metric_name:
+              type: string
+            datapoints:
+              type: array
+              items:
+                type: object
+                properties:
+                  timestamp:
+                    type: string
+                  value:
+                    type: number
+                  unit:
+                    type: string
+            period:
+              type: integer
+            statistic:
+              type: string

@@ -1,0 +1,248 @@
+# Java Application Tools Contracts
+# These define the input/output schemas for Java/JMX tools
+
+tools:
+  - name: java_get_heap_usage
+    display_name: Get JVM Heap Usage
+    description: |
+      Retrieve current heap memory usage from a Java application via JMX.
+      Returns used, committed, max, and initial heap sizes.
+    tags: [java, jmx, memory, heap]
+    input_schema:
+      type: object
+      properties:
+        jmx_url:
+          type: string
+          description: |
+            JMX service URL or Jolokia endpoint.
+            Examples:
+            - Jolokia: http://localhost:8080/jolokia
+            - JMX: service:jmx:rmi:///jndi/rmi://localhost:9999/jmxrmi
+        username:
+          type: string
+          description: JMX authentication username (if required)
+        password:
+          type: string
+          description: JMX authentication password (if required)
+      required:
+        - jmx_url
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            heap:
+              type: object
+              properties:
+                used_bytes:
+                  type: integer
+                committed_bytes:
+                  type: integer
+                max_bytes:
+                  type: integer
+                init_bytes:
+                  type: integer
+                used_percent:
+                  type: number
+            non_heap:
+              type: object
+              properties:
+                used_bytes:
+                  type: integer
+                committed_bytes:
+                  type: integer
+                max_bytes:
+                  type: integer
+            timestamp:
+              type: string
+
+  - name: java_get_thread_dump
+    display_name: Get Thread Dump
+    description: |
+      Generate a thread dump from a running Java application.
+      Shows all threads with their stack traces and states.
+    tags: [java, jmx, threads, dump]
+    input_schema:
+      type: object
+      properties:
+        jmx_url:
+          type: string
+          description: JMX service URL or Jolokia endpoint
+        username:
+          type: string
+        password:
+          type: string
+        max_depth:
+          type: integer
+          description: Maximum stack trace depth per thread
+          default: 50
+      required:
+        - jmx_url
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            thread_count:
+              type: integer
+            daemon_count:
+              type: integer
+            peak_count:
+              type: integer
+            threads:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  id:
+                    type: integer
+                  state:
+                    type: string
+                    enum: [NEW, RUNNABLE, BLOCKED, WAITING, TIMED_WAITING, TERMINATED]
+                  daemon:
+                    type: boolean
+                  priority:
+                    type: integer
+                  stack_trace:
+                    type: array
+                    items:
+                      type: string
+                  locked_monitors:
+                    type: array
+                    items:
+                      type: string
+                  locked_synchronizers:
+                    type: array
+                    items:
+                      type: string
+            deadlocked_threads:
+              type: array
+              items:
+                type: integer
+            timestamp:
+              type: string
+
+  - name: java_get_gc_stats
+    display_name: Get GC Statistics
+    description: |
+      Retrieve garbage collection statistics from a Java application.
+      Shows collection counts and times for each GC collector.
+    tags: [java, jmx, gc, memory]
+    input_schema:
+      type: object
+      properties:
+        jmx_url:
+          type: string
+          description: JMX service URL or Jolokia endpoint
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - jmx_url
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            collectors:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  collection_count:
+                    type: integer
+                  collection_time_ms:
+                    type: integer
+                  memory_pools:
+                    type: array
+                    items:
+                      type: string
+            memory_pools:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  type:
+                    type: string
+                  used_bytes:
+                    type: integer
+                  max_bytes:
+                    type: integer
+                  peak_used_bytes:
+                    type: integer
+            timestamp:
+              type: string
+
+  - name: java_list_mbeans
+    display_name: List MBeans
+    description: |
+      List all MBeans available on a JMX endpoint.
+      Useful for discovering available metrics and operations.
+    tags: [java, jmx, mbeans, discovery]
+    input_schema:
+      type: object
+      properties:
+        jmx_url:
+          type: string
+          description: JMX service URL or Jolokia endpoint
+        username:
+          type: string
+        password:
+          type: string
+        domain:
+          type: string
+          description: Filter by MBean domain (e.g., "java.lang", "com.example")
+        pattern:
+          type: string
+          description: Object name pattern to filter MBeans
+      required:
+        - jmx_url
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            total_count:
+              type: integer
+            domains:
+              type: array
+              items:
+                type: string
+            mbeans:
+              type: array
+              items:
+                type: object
+                properties:
+                  object_name:
+                    type: string
+                  domain:
+                    type: string
+                  type:
+                    type: string
+                  attributes:
+                    type: array
+                    items:
+                      type: string
+                  operations:
+                    type: array
+                    items:
+                      type: string
