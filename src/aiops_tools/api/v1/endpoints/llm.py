@@ -24,7 +24,7 @@ router = APIRouter()
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 
-@router.post("/tools/list", response_model=LLMToolListResponse)
+@router.post("/list", response_model=LLMToolListResponse)
 async def list_tools_for_llm(session: SessionDep) -> LLMToolListResponse:
     """List all active tools in OpenAI function calling format.
 
@@ -39,7 +39,7 @@ async def list_tools_for_llm(session: SessionDep) -> LLMToolListResponse:
     return LLMToolListResponse(tools=llm_tools)
 
 
-@router.post("/tools/get", response_model=LLMTool)
+@router.post("/get", response_model=LLMTool)
 async def get_tool_for_llm(session: SessionDep, request: LLMToolGetRequest) -> LLMTool:
     """Get a single tool by name in OpenAI function calling format.
 
@@ -65,7 +65,7 @@ async def get_tool_for_llm(session: SessionDep, request: LLMToolGetRequest) -> L
     return transform_to_llm_format(tool)
 
 
-@router.post("/tools/invoke", response_model=ToolInvokeResponse)
+@router.post("/invoke", response_model=ToolInvokeResponse)
 async def invoke_tool(session: SessionDep, request: ToolInvokeRequest) -> ToolInvokeResponse:
     """Invoke a tool with the given arguments.
 

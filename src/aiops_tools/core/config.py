@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     port: int = 6060
 
     # API
-    api_v1_prefix: str = "/api/v1"
+    api_v1_prefix: str = "/api/tools/v1"
 
     # Security
     secret_key: str = "change-me-in-production"

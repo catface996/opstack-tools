@@ -1,50 +1,141 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+- Version change: 0.0.0 → 1.0.0 (Initial constitution)
+- Added principles:
+  - I. URL Convention
+  - II. POST-Only API
+  - III. Tool Execution Safety
+  - IV. LLM Compatibility
+- Added sections:
+  - Technology Stack
+  - API Standards
+- Templates requiring updates:
+  - .specify/templates/plan-template.md ✅ (Constitution Check section exists)
+  - .specify/templates/spec-template.md ✅ (No constitution-specific updates needed)
+- Follow-up TODOs: None
+-->
+
+# AIOps Tools Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. URL Convention
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+All business-related HTTP endpoints MUST follow this URL structure:
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+```
+/api/tools/{version}/{path}
+```
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**Rules**:
+- Base prefix: `/api/tools/`
+- Version segment: `v1`, `v2`, etc.
+- Business path: specific operation path
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+**Examples**:
+- `/api/tools/v1/tools/list` - List tools
+- `/api/tools/v1/tools/create` - Create tool
+- `/api/tools/v1/categories/list` - List categories
+- `/api/tools/v1/llm/list` - LLM tool list
+- `/api/tools/v1/llm/invoke` - Invoke tool
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+**Exceptions** (not under `/api/tools/`):
+- `/health` - Health check endpoint
+- `/docs` - Swagger UI documentation
+- `/redoc` - ReDoc documentation
+- `/` - Root endpoint with API info
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+**Rationale**: Consistent URL structure improves API discoverability, versioning management, and client integration.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### II. POST-Only API
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+All business API endpoints MUST use HTTP POST method.
+
+**Rules**:
+- All CRUD operations use POST (not GET/PUT/DELETE)
+- Request body MUST be JSON format
+- Response body MUST be JSON format
+
+**Examples**:
+- `POST /api/tools/v1/list` with `{"page_size": 20}` (not GET with query params)
+- `POST /api/tools/v1/delete` with `{"tool_id": "xxx"}` (not DELETE)
+
+**Rationale**: POST-only simplifies client implementation, avoids URL length limits, enables complex query parameters, and provides consistent request/response patterns.
+
+### III. Tool Execution Safety
+
+Tool script execution MUST be safe and bounded.
+
+**Rules**:
+- Execution timeout: 30 seconds maximum
+- Scripts run in isolated subprocess
+- Input/output via JSON (stdin/stdout)
+- All tools MUST have `main(input_data: dict) -> dict` entry point
+- Return format: `{"success": bool, "data": {...}}` or `{"success": false, "error": {"code": "...", "message": "..."}}`
+
+**Rationale**: Prevents runaway scripts, ensures predictable resource usage, and provides consistent error handling.
+
+### IV. LLM Compatibility
+
+Tool definitions MUST be compatible with OpenAI function calling format.
+
+**Rules**:
+- Tools expose `input_schema` following JSON Schema
+- LLM endpoint returns tools in OpenAI function format
+- Tool names use snake_case (e.g., `k8s_list_pods`)
+- Descriptions are clear and actionable for LLM consumption
+
+**Rationale**: Enables seamless integration with LLM agents and maintains compatibility with industry standards.
+
+## Technology Stack
+
+**Core Technologies**:
+- Language: Python 3.11+
+- Framework: FastAPI with async support
+- ORM: SQLModel + SQLAlchemy
+- Database: PostgreSQL 15+
+- Cache/Queue: Redis 7+
+- Task Queue: Celery (optional)
+
+**Operations Tools Dependencies**:
+- Kubernetes: `kubernetes` client library
+- Database: `psycopg2` (PostgreSQL), `mysql-connector-python` (MySQL)
+- AWS: `boto3`
+- Java/JMX: Jolokia REST API
+
+## API Standards
+
+**Request/Response Format**:
+- Content-Type: `application/json`
+- All timestamps in ISO 8601 format
+- UUIDs for entity identifiers
+
+**Pagination**:
+- Default page size: 20
+- Maximum page size: 100
+- Parameters: `page`, `page_size`
+
+**Error Response Format**:
+```json
+{
+  "detail": "Error message"
+}
+```
+
+Or for validation errors:
+```json
+{
+  "detail": {
+    "validation_errors": [...]
+  }
+}
+```
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- This constitution supersedes all other development practices
+- Amendments require documentation and version increment
+- All code reviews MUST verify compliance with these principles
+- Use `CLAUDE.md` for runtime development guidance
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2025-12-27 | **Last Amended**: 2025-12-27

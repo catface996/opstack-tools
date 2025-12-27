@@ -84,7 +84,7 @@ async def delete_category(session: SessionDep, request: CategoryDeleteRequest) -
 
 
 # Tool endpoints
-@router.post("/create", response_model=ToolResponse, status_code=status.HTTP_201_CREATED, tags=["Tools"])
+@router.post("/tools/create", response_model=ToolResponse, status_code=status.HTTP_201_CREATED, tags=["Tools"])
 async def create_tool(session: SessionDep, tool_in: ToolCreate) -> Tool:
     """Create a new tool."""
     # Check if tool with same name exists
@@ -111,7 +111,7 @@ async def create_tool(session: SessionDep, tool_in: ToolCreate) -> Tool:
     return tool
 
 
-@router.post("/list", response_model=ToolListResponse, tags=["Tools"])
+@router.post("/tools/list", response_model=ToolListResponse, tags=["Tools"])
 async def list_tools(session: SessionDep, request: ToolListRequest) -> ToolListResponse:
     """List tools with pagination and filtering."""
     query = select(Tool).options(selectinload(Tool.category))
@@ -138,7 +138,7 @@ async def list_tools(session: SessionDep, request: ToolListRequest) -> ToolListR
     return ToolListResponse(items=tools, total=total, page=request.page, page_size=request.page_size)
 
 
-@router.post("/get", response_model=ToolResponse, tags=["Tools"])
+@router.post("/tools/get", response_model=ToolResponse, tags=["Tools"])
 async def get_tool(session: SessionDep, request: ToolGetRequest) -> Tool:
     """Get a tool by ID."""
     query = select(Tool).where(Tool.id == request.tool_id).options(selectinload(Tool.category))
@@ -149,7 +149,7 @@ async def get_tool(session: SessionDep, request: ToolGetRequest) -> Tool:
     return tool
 
 
-@router.post("/update", response_model=ToolResponse, tags=["Tools"])
+@router.post("/tools/update", response_model=ToolResponse, tags=["Tools"])
 async def update_tool(session: SessionDep, request: ToolUpdateRequest) -> Tool:
     """Update a tool with auto-increment version."""
     tool = await session.get(Tool, request.tool_id)
@@ -195,7 +195,7 @@ async def update_tool(session: SessionDep, request: ToolUpdateRequest) -> Tool:
     return tool
 
 
-@router.post("/delete", tags=["Tools"])
+@router.post("/tools/delete", tags=["Tools"])
 async def delete_tool(session: SessionDep, request: ToolDeleteRequest) -> dict:
     """Delete a tool."""
     tool = await session.get(Tool, request.tool_id)
@@ -205,7 +205,7 @@ async def delete_tool(session: SessionDep, request: ToolDeleteRequest) -> dict:
     return {"success": True, "message": "Tool deleted"}
 
 
-@router.post("/activate", response_model=ToolResponse, tags=["Tools"])
+@router.post("/tools/activate", response_model=ToolResponse, tags=["Tools"])
 async def activate_tool(session: SessionDep, request: ToolGetRequest) -> Tool:
     """Activate a tool."""
     tool = await session.get(Tool, request.tool_id)
@@ -218,7 +218,7 @@ async def activate_tool(session: SessionDep, request: ToolGetRequest) -> Tool:
     return tool
 
 
-@router.post("/deactivate", response_model=ToolResponse, tags=["Tools"])
+@router.post("/tools/deactivate", response_model=ToolResponse, tags=["Tools"])
 async def deactivate_tool(session: SessionDep, request: ToolGetRequest) -> Tool:
     """Deactivate a tool."""
     tool = await session.get(Tool, request.tool_id)

@@ -43,31 +43,31 @@ docker-compose logs -f api
 
 | 接口 | 描述 |
 |------|------|
-| `POST /api/v1/tools/categories/create` | 创建分类 |
-| `POST /api/v1/tools/categories/list` | 分类列表 |
-| `POST /api/v1/tools/categories/get` | 获取分类详情 |
-| `POST /api/v1/tools/categories/update` | 更新分类 |
-| `POST /api/v1/tools/categories/delete` | 删除分类 |
+| `POST /api/tools/v1/categories/create` | 创建分类 |
+| `POST /api/tools/v1/categories/list` | 分类列表 |
+| `POST /api/tools/v1/categories/get` | 获取分类详情 |
+| `POST /api/tools/v1/categories/update` | 更新分类 |
+| `POST /api/tools/v1/categories/delete` | 删除分类 |
 
 ### Tools - 工具管理
 
 | 接口 | 描述 |
 |------|------|
-| `POST /api/v1/tools/create` | 创建工具 |
-| `POST /api/v1/tools/list` | 工具列表（支持分页、搜索、筛选） |
-| `POST /api/v1/tools/get` | 获取工具详情 |
-| `POST /api/v1/tools/update` | 更新工具 |
-| `POST /api/v1/tools/delete` | 删除工具 |
-| `POST /api/v1/tools/activate` | 启用工具 |
-| `POST /api/v1/tools/deactivate` | 禁用工具 |
+| `POST /api/tools/v1/tools/create` | 创建工具 |
+| `POST /api/tools/v1/tools/list` | 工具列表（支持分页、搜索、筛选） |
+| `POST /api/tools/v1/tools/get` | 获取工具详情 |
+| `POST /api/tools/v1/tools/update` | 更新工具 |
+| `POST /api/tools/v1/tools/delete` | 删除工具 |
+| `POST /api/tools/v1/tools/activate` | 启用工具 |
+| `POST /api/tools/v1/tools/deactivate` | 禁用工具 |
 
 ### LLM - LLM 工具调用
 
 | 接口 | 描述 |
 |------|------|
-| `POST /api/v1/llm/tools/list` | 获取工具列表（OpenAI function calling 格式） |
-| `POST /api/v1/llm/tools/get` | 获取单个工具详情 |
-| `POST /api/v1/llm/tools/invoke` | 执行工具 |
+| `POST /api/tools/v1/llm/list` | 获取工具列表（OpenAI function calling 格式） |
+| `POST /api/tools/v1/llm/get` | 获取单个工具详情 |
+| `POST /api/tools/v1/llm/invoke` | 执行工具 |
 
 ## 项目结构
 
@@ -128,7 +128,7 @@ docker-compose logs -f api
 ### 1. 创建工具
 
 ```bash
-curl -X POST http://localhost:6060/api/v1/tools/create \
+curl -X POST http://localhost:6060/api/tools/v1/tools/create \
   -H "Content-Type: application/json" \
   -d '{
     "name": "get_weather",
@@ -149,7 +149,7 @@ curl -X POST http://localhost:6060/api/v1/tools/create \
 ### 2. 启用工具
 
 ```bash
-curl -X POST http://localhost:6060/api/v1/tools/activate \
+curl -X POST http://localhost:6060/api/tools/v1/tools/activate \
   -H "Content-Type: application/json" \
   -d '{"tool_id": "your-tool-uuid"}'
 ```
@@ -157,7 +157,7 @@ curl -X POST http://localhost:6060/api/v1/tools/activate \
 ### 3. LLM 发现工具
 
 ```bash
-curl -X POST http://localhost:6060/api/v1/llm/tools/list
+curl -X POST http://localhost:6060/api/tools/v1/llm/list
 ```
 
 返回 OpenAI function calling 格式：
@@ -185,7 +185,7 @@ curl -X POST http://localhost:6060/api/v1/llm/tools/list
 ### 4. 执行工具
 
 ```bash
-curl -X POST http://localhost:6060/api/v1/llm/tools/invoke \
+curl -X POST http://localhost:6060/api/tools/v1/llm/invoke \
   -H "Content-Type: application/json" \
   -d '{
     "tool_name": "get_weather",
