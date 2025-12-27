@@ -1,0 +1,297 @@
+# Kubernetes Tools Contracts
+# These define the input/output schemas for K8S tools
+
+tools:
+  - name: k8s_list_pods
+    display_name: List Kubernetes Pods
+    description: |
+      List all pods in a specified namespace with their status information.
+      Returns pod names, status, restart count, and age.
+    tags: [kubernetes, pods, list]
+    input_schema:
+      type: object
+      properties:
+        namespace:
+          type: string
+          description: Kubernetes namespace to list pods from
+          default: "default"
+        kubeconfig:
+          type: string
+          description: Path to kubeconfig file (optional, uses default if not specified)
+        context:
+          type: string
+          description: Kubernetes context to use (optional)
+        label_selector:
+          type: string
+          description: Label selector to filter pods (e.g., "app=nginx")
+      required: []
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            namespace:
+              type: string
+            pods:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  status:
+                    type: string
+                  ready:
+                    type: string
+                  restarts:
+                    type: integer
+                  age:
+                    type: string
+                  node:
+                    type: string
+
+  - name: k8s_get_logs
+    display_name: Get Pod Logs
+    description: |
+      Retrieve logs from a specific pod. Supports tail lines limit and container selection
+      for multi-container pods.
+    tags: [kubernetes, pods, logs]
+    input_schema:
+      type: object
+      properties:
+        namespace:
+          type: string
+          description: Kubernetes namespace
+          default: "default"
+        pod_name:
+          type: string
+          description: Name of the pod to get logs from
+        container:
+          type: string
+          description: Container name (required for multi-container pods)
+        tail_lines:
+          type: integer
+          description: Number of lines to return from end of logs
+          default: 100
+        kubeconfig:
+          type: string
+          description: Path to kubeconfig file
+        context:
+          type: string
+          description: Kubernetes context to use
+      required:
+        - pod_name
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            pod_name:
+              type: string
+            container:
+              type: string
+            logs:
+              type: string
+            line_count:
+              type: integer
+
+  - name: k8s_describe_pod
+    display_name: Describe Pod
+    description: |
+      Get detailed information about a pod including events, conditions,
+      container statuses, and resource usage.
+    tags: [kubernetes, pods, describe]
+    input_schema:
+      type: object
+      properties:
+        namespace:
+          type: string
+          default: "default"
+        pod_name:
+          type: string
+          description: Name of the pod to describe
+        kubeconfig:
+          type: string
+        context:
+          type: string
+      required:
+        - pod_name
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            name:
+              type: string
+            namespace:
+              type: string
+            status:
+              type: string
+            node:
+              type: string
+            ip:
+              type: string
+            containers:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  image:
+                    type: string
+                  state:
+                    type: string
+                  ready:
+                    type: boolean
+            events:
+              type: array
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                  reason:
+                    type: string
+                  message:
+                    type: string
+                  age:
+                    type: string
+
+  - name: k8s_restart_deployment
+    display_name: Restart Deployment
+    description: |
+      Perform a rolling restart of a deployment by updating its pod template annotation.
+      This triggers a gradual replacement of all pods.
+    tags: [kubernetes, deployments, restart]
+    input_schema:
+      type: object
+      properties:
+        namespace:
+          type: string
+          default: "default"
+        deployment_name:
+          type: string
+          description: Name of the deployment to restart
+        kubeconfig:
+          type: string
+        context:
+          type: string
+      required:
+        - deployment_name
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            deployment_name:
+              type: string
+            namespace:
+              type: string
+            message:
+              type: string
+            restart_time:
+              type: string
+
+  - name: k8s_list_namespaces
+    display_name: List Namespaces
+    description: |
+      List all namespaces in the Kubernetes cluster with their status.
+    tags: [kubernetes, namespaces, list]
+    input_schema:
+      type: object
+      properties:
+        kubeconfig:
+          type: string
+        context:
+          type: string
+      required: []
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            namespaces:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  status:
+                    type: string
+                  age:
+                    type: string
+
+  - name: k8s_get_deployment_status
+    display_name: Get Deployment Status
+    description: |
+      Get the status of a deployment including replica counts, conditions,
+      and rollout status.
+    tags: [kubernetes, deployments, status]
+    input_schema:
+      type: object
+      properties:
+        namespace:
+          type: string
+          default: "default"
+        deployment_name:
+          type: string
+          description: Name of the deployment
+        kubeconfig:
+          type: string
+        context:
+          type: string
+      required:
+        - deployment_name
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            name:
+              type: string
+            namespace:
+              type: string
+            replicas:
+              type: object
+              properties:
+                desired:
+                  type: integer
+                ready:
+                  type: integer
+                available:
+                  type: integer
+                updated:
+                  type: integer
+            conditions:
+              type: array
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                  status:
+                    type: string
+                  reason:
+                    type: string
+            strategy:
+              type: string

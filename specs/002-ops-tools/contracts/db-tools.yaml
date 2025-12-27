@@ -1,0 +1,221 @@
+# Database Tools Contracts
+# These define the input/output schemas for Database tools
+
+tools:
+  - name: db_execute_query
+    display_name: Execute SQL Query
+    description: |
+      Execute a read-only SQL query against a PostgreSQL or MySQL database.
+      Only SELECT, SHOW, DESCRIBE, and EXPLAIN statements are allowed.
+      Results are limited to prevent memory issues.
+    tags: [database, query, sql]
+    input_schema:
+      type: object
+      properties:
+        db_type:
+          type: string
+          enum: [postgresql, mysql]
+          description: Database type
+        host:
+          type: string
+          description: Database host address
+        port:
+          type: integer
+          description: Database port (5432 for PostgreSQL, 3306 for MySQL)
+        database:
+          type: string
+          description: Database name
+        username:
+          type: string
+          description: Database username
+        password:
+          type: string
+          description: Database password
+        query:
+          type: string
+          description: SQL query to execute (SELECT only)
+        timeout:
+          type: integer
+          description: Query timeout in seconds
+          default: 30
+        max_rows:
+          type: integer
+          description: Maximum number of rows to return
+          default: 1000
+      required:
+        - db_type
+        - host
+        - database
+        - username
+        - password
+        - query
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            columns:
+              type: array
+              items:
+                type: string
+            rows:
+              type: array
+              items:
+                type: array
+            row_count:
+              type: integer
+            truncated:
+              type: boolean
+              description: True if results were limited by max_rows
+            execution_time_ms:
+              type: integer
+
+  - name: db_list_tables
+    display_name: List Database Tables
+    description: |
+      List all tables in a database with their row counts and sizes.
+    tags: [database, schema, tables]
+    input_schema:
+      type: object
+      properties:
+        db_type:
+          type: string
+          enum: [postgresql, mysql]
+        host:
+          type: string
+        port:
+          type: integer
+        database:
+          type: string
+        username:
+          type: string
+        password:
+          type: string
+        schema:
+          type: string
+          description: Schema name (PostgreSQL only)
+          default: "public"
+      required:
+        - db_type
+        - host
+        - database
+        - username
+        - password
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            database:
+              type: string
+            schema:
+              type: string
+            tables:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  type:
+                    type: string
+                    description: "table or view"
+                  row_count:
+                    type: integer
+                  size_bytes:
+                    type: integer
+
+  - name: db_describe_table
+    display_name: Describe Table Schema
+    description: |
+      Get detailed schema information for a table including columns,
+      data types, constraints, and indexes.
+    tags: [database, schema, describe]
+    input_schema:
+      type: object
+      properties:
+        db_type:
+          type: string
+          enum: [postgresql, mysql]
+        host:
+          type: string
+        port:
+          type: integer
+        database:
+          type: string
+        username:
+          type: string
+        password:
+          type: string
+        table_name:
+          type: string
+          description: Name of the table to describe
+        schema:
+          type: string
+          default: "public"
+      required:
+        - db_type
+        - host
+        - database
+        - username
+        - password
+        - table_name
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            table_name:
+              type: string
+            schema:
+              type: string
+            columns:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  data_type:
+                    type: string
+                  nullable:
+                    type: boolean
+                  default:
+                    type: string
+                  primary_key:
+                    type: boolean
+            indexes:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  columns:
+                    type: array
+                    items:
+                      type: string
+                  unique:
+                    type: boolean
+            foreign_keys:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  column:
+                    type: string
+                  references_table:
+                    type: string
+                  references_column:
+                    type: string
